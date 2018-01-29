@@ -1,11 +1,11 @@
 
 .data					# section declaration
 
-        # Useful offset constants for accessing members of a 
+        # Useful offset constants for accessing members of a
         # struct mp1_blink_struct structure
-        LOCATION   = 0    
+        LOCATION   = 0
         ON_CHAR    = 2
-        OFF_CHAR   = 3 
+        OFF_CHAR   = 3
         ON_LENGTH  = 4
         OFF_LENGTH = 6
         COUNTDOWN  = 8
@@ -35,23 +35,54 @@ mp1_list_head:
 #            the byte in %cl
 # Registers: Clobbers EDX
 mp1_poke:
-        
+
 	movl    vmem_base_addr(,1),%edx
 	movb    %cl,(%edx,%eax,1)
 	ret
 
 mp1_rtc_tasklet:
-	ret
+    subl $1, %eax
+    cmpl 8(mp1_list_head), $0
+    je count
+  count:
+    cmpl 10(mp1_list_head), $1
+    je off
+    jne on
+  off:
+    movl $1000, %eax
+    movw 3(mp1_list_head), %cl
+    pushl %eax
+    pushl %cl
+    call mp1_poke
+    movl 6(mp1_list_head), 8(mp1_list_head)
+    step
+  on:
+    movl $1000, %eax
+    movw 2(mp1_list_head), %cl
+    pushl %eax
+    pushl %cl
+    call mp1_poke
+    movl 4(mp1_list_head), 8(mp1_list_head)
+    step
+  step:
+    cmp 16(mp1_list_head), $0
+    je fin
+    jne mp1_rtc_tasklet
+    fin
+  fin:
+    ret
+
 
 mp1_ioctl:
+
 	ret
 
 mp1_ioctl_add:
 	ret
-        
+
 mp1_ioctl_remove:
 	ret
-        
+
 mp1_ioctl_find:
 	ret
 
