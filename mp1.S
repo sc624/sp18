@@ -118,7 +118,7 @@ mp1_ioctl:
     cmpl $4, %edx                   #check if cmd is valid (between 0 & 3)
     jae return                      #otherwise return -1
     cmpl $0, %edx
-    jb return
+    jl return
     jmp *ioctl_jump(, %edx, 4)      #go to jump table
 
   return:
@@ -164,7 +164,7 @@ mp1_ioctl_add:
   jne	free                      #free allocated mem
 
   cmpw $0, LOCATION(%ebx)       #check LOCATION to see if valid
-  jb negone                     #outside of range (below)
+  jl negone                     #outside of range (below)
   cmpw $1999, LOCATION(%ebx)
   ja negone                     #outside of range (above)
 
@@ -265,7 +265,7 @@ int mp1ioctlfind(unsigned long arg)
 
                               /*--------------------------------SYNC------------------------------------*/
 /*
-int mp1ioctlsync(unsigned long arg)
+int mp1_ioctl_sync(unsigned long arg)
   %esi - first struct
   %edi - second struct
 */
@@ -273,26 +273,35 @@ mp1_ioctl_sync:
   pushl %ebp                  #see TASKLET
   movl %esp, %ebp
   pushl %edi
+  pushl %esi
   pushl %ecx
   pushl %ebx
   movl 8(%ebp), %eax          #arg stored in eax
 
 
   movw %ax, %dx               #grab bottom two bytes & store into dx
+  cmpw $0, LOCATION(%ebx)       #check LOCATION to see if valid
+  jl negone                     #outside of range (below)
+  cmpw $1999, LOCATION(%ebx)
+  ja negone
   pushl %edx                  #push edx parameter
   call traverse               #search for struct
   addl $4, %esp               #restore vals
   cmpl $0, %eax               #check if desired struct present
-  je negone                   #return -1
+  je negone_s                   #return -1
   movl %eax, %esi             #copy struct head into esi
 
   movl 8(%ebp), %eax          #refresh arg in eax
   shrl $16, %eax              #shift high 2 bytes to bottom 2 bytes
+  cmpw $0, LOCATION(%ebx)       #check LOCATION to see if valid
+  jl negone                     #outside of range (below)
+  cmpw $1999, LOCATION(%ebx)
+  ja negone
   pushl %eax                  #push eax param
   call traverse               #search for struct
   addl $4, %esp               #restore vals
   cmpl $0, %eax               #check if desired struct present
-  je negone
+  je negone_s
   movl %eax, %edi             #copy struct head into edi
 
 
@@ -317,14 +326,32 @@ sync_on:
   movzwl (%esi), %eax         #store LOCATION into eax param
   imulw $2, %ax               #LOCATION *2 offset
   call mp1_poke               #display char
-  jmp worked                  #return 0 success
+  jmp worked_s                  #return 0 success
 
 sync_off:
   movb OFF_CHAR(%esi), %cl    #get opposite char
   movzwl (%esi), %eax         #store LOCATION into eax param
   imulw $2, %ax               #LOCATION *2 offset
   call mp1_poke               #display char
-  jmp worked                  #return 0 success
+  jmp worked_s                  #return 0 success
+
+  worked_s:
+    movl $0, %eax
+    popl %ebx
+    popl %ecx
+    popl %esi
+    popl %edi
+    leave
+    ret
+
+  negone_s:
+    movl $-1, %eax
+    popl %ebx
+    popl %ecx
+    popl %esi
+    popl %edi
+    leave
+    ret
 
                           /*---------------------------------TRAVERSE------------------------------------*/
 /*
