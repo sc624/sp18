@@ -280,31 +280,23 @@ mp1_ioctl_sync:
 
 
   movw %ax, %dx               #grab bottom two bytes & store into dx
-  cmpw $0, LOCATION(%ebx)       #check LOCATION to see if valid
-  jl negone                     #outside of range (below)
-  cmpw $1999, LOCATION(%ebx)
-  ja negone
-  pushl %edx                  #push edx parameter
+  pushw %dx                  #push edx parameter
   call traverse               #search for struct
-  addl $4, %esp               #restore vals
+  popw %dx               #restore vals
   cmpl $0, %eax               #check if desired struct present
   je negone_s                   #return -1
   movl %eax, %esi             #copy struct head into esi
 
-  movl 8(%ebp), %eax          #refresh arg in eax
-  shrl $16, %eax              #shift high 2 bytes to bottom 2 bytes
-  cmpw $0, LOCATION(%ebx)       #check LOCATION to see if valid
-  jl negone                     #outside of range (below)
-  cmpw $1999, LOCATION(%ebx)
-  ja negone
-  pushl %eax                  #push eax param
+  movl 8(%ebp), %ecx          #refresh arg in eax
+  shrl $16, %ecx              #shift high 2 bytes to bottom 2 bytes
+  pushw %cx                  #push eax param
   call traverse               #search for struct
-  addl $4, %esp               #restore vals
+  popw %cx					#restore vals
   cmpl $0, %eax               #check if desired struct present
   je negone_s
   movl %eax, %edi             #copy struct head into edi
 
-
+xorl %eax, %eax
   movw ON_LENGTH(%edi), %ax   #copy all elements of first struct to second struct
   movw %ax, ON_LENGTH(%esi)
   movw OFF_LENGTH(%edi), %ax
