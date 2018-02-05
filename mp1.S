@@ -72,8 +72,10 @@ on:
   movb OFF_CHAR(%ebx), %cl          #display opposite char
   movzwl LOCATION(%ebx), %eax       #put location in eax for poke parameter
   imulw $2, %ax                     #apply offset *2
-  call mp1_poke                     #call mp1_poke
-  movw OFF_LENGTH(%ebx), %dx        #replace countdown with off length
+pushl %edx
+  call mp1_poke               #display char
+	popl %edx
+	movw OFF_LENGTH(%ebx), %dx        #replace countdown with off length
   movw %dx, COUNTDOWN(%ebx)
   movw $0, STATUS(%ebx)             #set STATUS as off
   jmp step                          #go to next struct
@@ -83,8 +85,10 @@ off:
   movb ON_CHAR(%ebx), %cl           #display opposite char
   movzwl LOCATION(%ebx), %eax       #put location in eax for poke parameter
   imulw $2, %ax                     #apply offset *2
-  call mp1_poke                     #call mp1_poke
-  movw ON_LENGTH(%ebx), %dx         #replace countdown with on length
+pushl %edx
+  call mp1_poke               #display char
+	popl %edx
+	movw ON_LENGTH(%ebx), %dx         #replace countdown with on length
   movw %dx, COUNTDOWN(%ebx)
   movw $1, STATUS(%ebx)             #set STATUS to on
   jmp step                          #go to next struct
@@ -180,8 +184,10 @@ mp1_ioctl_add:
   movzwl LOCATION(%edx), %eax   #load LOCATION in eax parameter
   imulw $2, %ax                 #set LOCATION offset *2
   movb ON_CHAR(%edx), %cl       #low bytes in cl reg to display
-  call mp1_poke                 #display char
-  jmp worked                    #return 0
+pushl %edx
+  call mp1_poke               #display char
+	popl %edx
+	jmp worked                    #return 0
 
 free:
   pushl %eax
@@ -325,14 +331,18 @@ sync_on:
   movb ON_CHAR(%esi), %cl     #display opposite char
   movzwl (%esi), %eax         #store LOCATION into eax param
   imulw $2, %ax               #LOCATION *2 offset
+pushl %edx
   call mp1_poke               #display char
-  jmp worked                  #return 0 success
+	popl %edx
+	jmp worked                  #return 0 success
 
 sync_off:
   movb OFF_CHAR(%esi), %cl    #get opposite char
   movzwl (%esi), %eax         #store LOCATION into eax param
   imulw $2, %ax               #LOCATION *2 offset
+  pushl %edx
   call mp1_poke               #display char
+	popl %edx
   jmp worked                  #return 0 success
 
  
