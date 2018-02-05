@@ -48,11 +48,11 @@ edi - temp register
 ecx - video reg
 */
 mp1_rtc_tasklet:
-  pushl     %ebp                    #save old frame Pointer
-  movl      %esp, %ebp              #point to new frame
-  pushl      %edi                   #preserve registers
-  pushl      %ecx
-  pushl      %ebx
+  pushl %ebp                    #save old frame Pointer
+  movl %esp, %ebp              #point to new frame
+  pushl %edi                   #preserve registers
+  pushl %ecx
+  pushl %ebx
   movl mp1_list_head, %ebx          #ebx <- mp1_list_head
   cmpl $0, %ebx                     #check if mp1_list_head isn't empty
   je error
@@ -242,8 +242,8 @@ int mp1ioctlfind(unsigned long arg)
   pushl %ebp                  #see TASKLET
   movl %esp, %ebp
   pushl %edi
-  pushl %edx
   pushl %ecx
+  pushl %ebx
   movl 8(%ebp), %edi          #store arg into edi
   cmpl $0, %edi               #check if arg present
   je negone                   #return -1
@@ -326,7 +326,7 @@ sync_off:
   call mp1_poke               #display char
   jmp worked                  #return 0 success
 
-                              /*---------------------------------TRAVERSE------------------------------------*/
+                          /*---------------------------------TRAVERSE------------------------------------*/
 /*
   %ax - arg/return val
   %ecx - head pointer
@@ -367,16 +367,16 @@ search_return:
 /*Used across all functions for returning -1/0 with memory errors*/
 worked:
   movl $0, %eax
+  popl %ebx
   popl %ecx
-  popl %edx
   popl %edi
   leave
   ret
 
 negone:
   movl $-1, %eax
+  popl %ebx
   popl %ecx
-  popl %edx
   popl %edi
   leave
   ret
