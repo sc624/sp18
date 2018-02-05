@@ -51,7 +51,7 @@ mp1_rtc_tasklet:
   pushl %ebp                    #save old frame Pointer
   movl %esp, %ebp              #point to new frame
   pushl %edi                   #preserve registers
-  pushl %ecx
+  pushl %esi
   pushl %ebx
   movl mp1_list_head, %ebx          #ebx <- mp1_list_head
   cmpl $0, %ebx                     #check if mp1_list_head isn't empty
@@ -97,7 +97,7 @@ step:
 
 end:
   popl %ebx                         #restore registers
-  popl %ecx
+  popl %esi
   popl %edi
   leave                             #restore stack vars
   ret                               #return
@@ -138,7 +138,7 @@ mp1_ioctl_add:
   pushl	%ebp                    #see TASKLET
   movl	%esp, %ebp
   pushl	%edi
-  pushl	%ecx
+  pushl	%esi
   pushl	%ebx
   movl	8(%ebp), %ecx           #arg stored in %ecx
   cmpl	$0, %ecx	              #check if valid arg stored
@@ -171,8 +171,8 @@ mp1_ioctl_add:
   movw ON_LENGTH(%ebx), %dx	    #replace COUNTDOWN with ON_LENGTH
   movw %dx, COUNTDOWN(%ebx)
   movw $1, STATUS(%ebx)         #set STATUS to ON
-
   popl %edx                     #restore edx register
+
   movl mp1_list_head, %eax      #mp1_list_head stored into eax
   movl %eax, NEXT(%edx)         #edx holds address of next struct
   movl %edx, mp1_list_head      #mp1_list_head holds address of next struct
@@ -202,7 +202,7 @@ int mp1ioctlremove(unsigned long arg)
   pushl %ebp                      #see TASKLET
   movl %esp, %ebp
   pushl %edi
-  pushl %ecx
+  pushl %esi
   pushl %ebx
   pushl 8(%ebp)                   #push arg for traverse to search with
   call traverse                   #traverse LL
@@ -210,6 +210,8 @@ int mp1ioctlremove(unsigned long arg)
   cmpl $0, %eax                   #check if found struct
   je negone                       #return -1
   movl mp1_list_head, %edx        #edx <- mp1_list_head
+  cmpl %eax, %edx
+  je remove_head
 
 remove_loop:
   cmpl $0, %edx                   #check if mp1_list_head NULL
@@ -219,6 +221,11 @@ remove_loop:
   movl NEXT(%edx), %edx           #set NEXT ptr as head
   jmp remove_loop                 #loop
 
+remove_head:
+	movl NEXT(%edx), %ecx
+	movl %ecx, mp1_list_head
+	jmp free_remove
+  
 remove_found:
   movl NEXT(%eax), %ecx        #set current NEXT ptr to next NEXT ptr
   movl %ecx, (%edx)            #set current ptr as previous ptr
@@ -233,16 +240,16 @@ free_remove:
                               /*---------------------------------FIND------------------------------------*/
 
 /*
-int mp1ioctlfind(unsigned long arg)
+int mp1_ioctl_find(unsigned long arg)
   %edi - arg
   %edx - previous struct
-  %ecx - next struct
+  %esi - next struct
 */
  mp1_ioctl_find:
   pushl %ebp                  #see TASKLET
   movl %esp, %ebp
   pushl %edi
-  pushl %ecx
+  pushl %esi
   pushl %ebx
   movl 8(%ebp), %edi          #store arg into edi
   cmpl $0, %edi               #check if arg present
@@ -274,29 +281,30 @@ mp1_ioctl_sync:
   movl %esp, %ebp
   pushl %edi
   pushl %esi
-  pushl %ecx
   pushl %ebx
   movl 8(%ebp), %eax          #arg stored in eax
 
 
   movw %ax, %dx               #grab bottom two bytes & store into dx
-  pushw %dx                  #push edx parameter
+  pushl %edx				  #pass in parameter
   call traverse               #search for struct
-  popw %dx               #restore vals
+  popl %edx               		#restore vals
   cmpl $0, %eax               #check if desired struct present
-  je negone_s                   #return -1
+  je negone                   #return -1
   movl %eax, %esi             #copy struct head into esi
 
   movl 8(%ebp), %ecx          #refresh arg in eax
   shrl $16, %ecx              #shift high 2 bytes to bottom 2 bytes
-  pushw %cx                  #push eax param
+  	popl %edx
+  pushl %ecx                  #preserve ecx caller saved param
   call traverse               #search for struct
-  popw %cx					#restore vals
+  popl %ecx						#restore val of ecx
+  	popl %edx
+
   cmpl $0, %eax               #check if desired struct present
-  je negone_s
+  je negone
   movl %eax, %edi             #copy struct head into edi
 
-xorl %eax, %eax
   movw ON_LENGTH(%edi), %ax   #copy all elements of first struct to second struct
   movw %ax, ON_LENGTH(%esi)
   movw OFF_LENGTH(%edi), %ax
@@ -318,32 +326,16 @@ sync_on:
   movzwl (%esi), %eax         #store LOCATION into eax param
   imulw $2, %ax               #LOCATION *2 offset
   call mp1_poke               #display char
-  jmp worked_s                  #return 0 success
+  jmp worked                  #return 0 success
 
 sync_off:
   movb OFF_CHAR(%esi), %cl    #get opposite char
   movzwl (%esi), %eax         #store LOCATION into eax param
   imulw $2, %ax               #LOCATION *2 offset
   call mp1_poke               #display char
-  jmp worked_s                  #return 0 success
+  jmp worked                  #return 0 success
 
-  worked_s:
-    movl $0, %eax
-    popl %ebx
-    popl %ecx
-    popl %esi
-    popl %edi
-    leave
-    ret
-
-  negone_s:
-    movl $-1, %eax
-    popl %ebx
-    popl %ecx
-    popl %esi
-    popl %edi
-    leave
-    ret
+ 
 
                           /*---------------------------------TRAVERSE------------------------------------*/
 /*
@@ -353,6 +345,7 @@ sync_off:
 */
 traverse:						# list traversal used by ioctl functions
 	pushl %ebp
+	
 	movl %esp, %ebp
   movw 8(%ebp), %ax           #store location arg into eax low bytes
 	movl mp1_list_head, %ecx    #head pointer
@@ -371,7 +364,6 @@ loop:
 head:
   movl $1, %eax               #return 1 for head of list
   jmp search_return           #leave traverse
-
 found:
   movl %ecx, %eax             #set found head ptr as return val
   jmp search_return           #leave func
@@ -379,6 +371,7 @@ nada:
   movl $0, %eax               #return 0 for struct not found
   jmp search_return           #leave
 search_return:
+
   leave                       #leave
   ret                         #return
 
@@ -387,15 +380,15 @@ search_return:
 worked:
   movl $0, %eax
   popl %ebx
-  popl %ecx
+  popl %esi
   popl %edi
   leave
   ret
-
+//ecx eax edx caller
 negone:
   movl $-1, %eax
   popl %ebx
-  popl %ecx
+  popl %esi
   popl %edi
   leave
   ret
