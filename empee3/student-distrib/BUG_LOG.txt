@@ -1,0 +1,206 @@
+General Format:
+
+1)
+ - Who found it?
+    :
+ - How to reproduce it?
+    :
+ - How did you fix it?
+    :
+ - How much time did you spend on debugging/solving?
+    :
+
+
+CP 1
+
+1) Wrong PIC Initialization
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : connecting the wrong port.
+- How did you fix it?
+    : Followed the note instruction about PIC
+- How much time did you spend on debugging/solving?
+    : 10 minutes.
+
+2) Page fault after paging initialization
+ - Who found it?
+    : Ashraf
+ - How to reproduce it?
+    : Enable paging before enabling Page Size Extension (PSE) to allow 4-MB pages
+ - How did you fix it?
+    : Enable PSE before paging
+ - How much time did you spend on debugging/solving?
+    : 10 hours
+    
+3) Keyboard not typing correct characters
+ - Who found it?
+    : All of us
+ - How to reproduce it?
+    : Print scancode directly
+ - How did you fix it?
+    : Store keyboard input as char and print from key map
+ - How much time did you spend on debugging/solving?
+    : 4 hours
+
+CP 2
+
+1) Read_data incorrectly storing data into buffer
+ - Who found it?
+    : Sam
+ - How to reproduce it?
+    : Run cat verylargetextwithverylongname.tx
+ - How did you fix it?
+    : Added ternary statements to make sure copy_length was in bounds
+ - How much time did you spend on debugging/solving?
+    : 5 hours
+
+2) Terminal write not printing correct information from terminal read buffer
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : Enter terminal read then send the buffer to terminal write
+- How did you fix it?
+    : Send correct number of bytes read and append '\n\0' to the end of the buffer
+- How much time did you spend on debugging/solving?
+    : 3 hours
+
+2) Backspace messed up screen position and buffer on edge causes
+- Who found it ?
+    : JJ
+- How to reproduce it?
+    : Fill keyboard buffer all the way and then hold backspace
+- How did you fix it?
+    : Have multiple cases in our backspace function to handle every situation properly
+- How much time did you spend on debugging/solving?
+    : 2 hours
+
+CP 3
+
+1) Open system call
+- Who found it?
+    : Ashraf
+- How to reproduce it?
+    : Confusion between file descriptor and for loop index
+        i.e. returning the for loop index instead of the file descriptor
+- How did you fix it?
+    : Return the proper file descriptor
+- How much time did you spend on debugging/solving?
+    : 30 minutes
+
+2) ls not printing correct buffers
+ - Who found it?
+    : Sam
+ - How to reproduce it?
+    : Use inode filelength instead of nbytes
+ - How did you fix it?
+    : Use fixed buffer length
+ - How much time did you spend on debugging/solving?
+    : 2 hours
+
+3) Stack overflow on program load
+- Who found it?
+    : Ashraf
+- How to reproduce it?
+    : Memcpy the entire user-program code to an array in kernel space
+- How did you fix it?
+    : Memcpy only the metadata bytes to kernel space
+- How much time did you spend on debugging/solving?
+    : 5 hours
+
+4) User program page faults when scrolling
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : Launch shell or any user program that will cause terminal to scroll
+- How did you fix it?
+    : Correctly handle scrolling in the terminal write function
+- How much time did you spend on debugging/solving
+    : 1 hour
+
+5) cat not printing all of file content for some files
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : Run cat frame0.txt, bottom row of fish is missing
+- How did you fix it?
+    : Fix terminal write to handle overflow Correctly
+- How much time did you spend on debugging/solving
+    : 1 hour
+
+CP 4
+
+1) Halting two shell halts all the shells
+ - Who found it?
+    : Ashraf
+ - How to reproduce it?
+    : Overwrite saved kernel stack and base pointer in syscalls_asm.S
+ - How did you fix it?
+    : Allocate 12 memory locations (6 for each) to save stack/base pointer
+ - How much time did you spend on debugging/solving?
+    : 10 hours
+    
+2) Wouldn't print out certain bytes when calling cat
+ - Who found it?
+    : Sam
+ - How to reproduce it?
+    : Read offset of 4 KB
+ - How did you fix it?
+    : Added conditional check and used nbytes instead of offset for read_data
+ - How much time did you spend on debugging/solving?
+    : 2 hours
+
+3) Ping pong was only showing bottom row bounce back and forth
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : Run pingpong
+- How did you fix it?
+    : Removed the call of clear in the RTC ISR handler from an earlier testcase
+- How much time did you spend on debugging/solving?
+    : 30 minutes
+
+
+CP 5
+
+1) Halting a process (with scheduling) causes a page fault
+ - Who found it?
+    : Ashraf
+ - How to reproduce it?
+    : Do not remove active PID from the particular terminal
+ - How did you fix it?
+    : Remove active PID from the particular terminal
+ - How much time did you spend on debugging/solving?
+    : 3 hours
+
+2) Shell printing out "daddyOS> " in multiple terminals
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : Press enter to leave the terminal read function then switch terminals
+- How did you fix it?
+    : Virtualize terminal read
+- How much time did you spend on debugging/solving?
+    : 5 hours
+
+3) User program outputting in wrong terminal
+- Who found it?
+    : JJ
+- How to reproduce it?
+    : Run any user program in shell
+- How did you fix it?
+    : Virtualize terminal write
+- How much time did you spend on debugging/solving?
+    : 5 hours
+
+4) Fish writing to all terminals
+- Who found it?
+    : Everyone
+- How to reproduce it?
+    : Run fish, switch terminals
+- How did you fix it?
+    : Add using vid map flag to terminal struct, check flag and appropriately
+      switch user vid map page table on scheduling and terminal switch
+- How much time did you spend on debugging/solving?
+    : 4 hours
+
